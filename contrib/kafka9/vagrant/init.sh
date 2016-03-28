@@ -80,23 +80,24 @@ install_aurora_coordinator() {
     mkdir -p /home/vagrant/aurora
     pushd /home/vagrant/aurora
     # Installing scheduler
-    wget -c https://apache.bintray.com/aurora/aurora-scheduler_0.10.0-1_amd64.deb
-    dpkg -i aurora-scheduler_0.10.0-1_amd64.deb
+    wget -c https://bintray.com/artifact/download/apache/aurora/ubuntu-trusty/aurora-scheduler_0.12.0_amd64.deb
+    dpkg -i aurora-scheduler_0.12.0_amd64.deb
     stop aurora-scheduler
     sudo -u aurora mkdir -p /var/lib/aurora/scheduler/db
     sudo -u aurora mesos-log initialize --path=/var/lib/aurora/scheduler/db
+    sudo sed 's/EXTRA_SCHEDULER_ARGS=\"\"/EXTRA_SCHEDULER_ARGS=\"-min_offer_hold_time=1secs -enable_preemptor=false -offer_hold_jitter_window=1secs\"/' /etc/default/aurora-scheduler
     start aurora-scheduler
     # Installing client
-    wget https://apache.bintray.com/aurora/aurora-tools_0.10.0-1_amd64.deb
-    dpkg -i aurora-tools_0.10.0-1_amd64.deb
+    wget https://bintray.com/artifact/download/apache/aurora/ubuntu-trusty/aurora-tools_0.12.0_amd64.deb
+    dpkg -i aurora-tools_0.12.0_amd64.deb
     popd
 }
 
 install_aurora_worker() {
     mkdir -p /home/vagrant/aurora
     pushd /home/vagrant/aurora
-    wget -c https://apache.bintray.com/aurora/aurora-executor_0.10.0-1_amd64.deb
-    dpkg -i aurora-executor_0.10.0-1_amd64.deb
+    wget -c https://bintray.com/artifact/download/apache/aurora/ubuntu-trusty/aurora-executor_0.12.0_amd64.deb
+    dpkg -i aurora-executor_0.12.0_amd64.deb
     popd
 }
 
