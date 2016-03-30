@@ -1,0 +1,11 @@
+name: eeyore-min
+applications:
+  stream-consumer:
+    type: "stream-consumer"
+    id: stream-consumer
+    cpu: 0.2
+    mem: 512
+    artifact_urls:
+      - "http://repo.elodina.s3.amazonaws.com/eeyore-config.tar.gz"
+      - "http://repo.elodina.s3.amazonaws.com/stream-consumer-1.0.jar"
+    launch_command: "java -Dlog4j.configuration=file:config/stream-consumer-log4j.properties -jar stream-consumer-1.0.jar config/wk-edits.stream-consumer.properties --cassandra.contact.point none --kafka.bootstrap.servers ${kafka_server} --schema.registry.url none --zipkin.kafka.broker.list ${kafka_server} --zipkin.sample.rate -1 --zipkin.kafka.topic zipkin --kafka.topic ${source_topic}"

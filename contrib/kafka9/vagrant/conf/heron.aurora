@@ -5,8 +5,7 @@ and regular stmgr/metricsmgr/instances (shards > 0).
 """
 
 heron_core_release_url = 'file:///vagrant/dist/ubuntu/{{HERON_PACKAGE}}'
-heron_topology_jar_url = 'file:///vagrant/dist/topologies/{{TOPOLOGY_JAR_FILE}}'
-heron_defn_file_url = 'file:///vagrant/dist/ubuntu/defn-tmp/{{TOPOLOGY_NAME}}.defn'
+heron_topology_jar_url = 'file://{{HERON_UPLOADER_HOME}}/{{DC}}/{{RUN_ROLE}}/{{ENVIRON}}/{{TOPOLOGY_NAME}}/topology.tar.gz'
 metrics_classpath_updated = 'heron-metricsmgr.jar:metrics-mgr-classpath/*'
 
 # --- processes ---
@@ -17,12 +16,7 @@ fetch_heron_system = Process(
 
 fetch_user_package = Process(
   name = 'fetch_user_package',
-  cmdline = 'curl %s -o {{TOPOLOGY_JAR_FILE}}' % heron_topology_jar_url
-)
-
-fetch_defn_file = Process(
-  name = 'fetch_defn_file',
-  cmdline = 'curl %s -o {{TOPOLOGY_NAME}}.defn' % heron_defn_file_url
+  cmdline = 'curl %s -o topology.tar.gz && tar zxf topology.tar.gz' % heron_topology_jar_url
 )
 
 launch_heron_executor = Process(
@@ -39,7 +33,7 @@ discover_profiler_port = Process(
 # --- tasks ---
 heron_task = SequentialTask(
   name = 'setup_and_run',
-  processes = [fetch_heron_system, fetch_user_package, fetch_defn_file, launch_heron_executor, discover_profiler_port],
+  processes = [fetch_heron_system, fetch_user_package, launch_heron_executor, discover_profiler_port],
   resources = Resources(cpu = '{{CPUS_PER_CONTAINER}}', ram = '{{RAM_PER_CONTAINER}}', disk = '{{DISK_PER_CONTAINER}}')
 )
 

@@ -23,6 +23,8 @@ import com.twitter.heron.scheduler.util.NetworkUtility;
 import com.twitter.heron.scheduler.twitter.PackerUtility;
 import com.twitter.heron.scheduler.util.ShellUtility;
 import com.twitter.heron.scheduler.util.TopologyUtility;
+import com.twitter.heron.state.FileSystemStateManager;
+import com.twitter.heron.state.curator.CuratorStateManager;
 
 /**
  * Launch topology on aurora.
@@ -94,14 +96,22 @@ public class AuroraLauncher implements ILauncher {
     return String.format("\"%s\"", javaOptsBase64.replace("=", "&equals;"));
   }
 
-  private String getZkRoot() {
-    return context.getPropertyWithException(Constants.ZKROOT);
-  }
+  private void addZKProperties(Map<String, String> auroraProperties) {
+    String zkHost = context.getProperty(Constants.ZKHOST);
+    String zkPortString = context.getProperty(Constants.ZKPORT);
+    Integer zkPort = null;
+    if (zkPortString != null) {
+      zkPort = Integer.parseInt(zkPortString);
+    }
+    String zkRoot = context.getProperty(Constants.ZKROOT);
 
-  private String getZkHostPort() {
-    String zkHost = context.getPropertyWithException(Constants.ZKHOST);
-    String zkPort = context.getPropertyWithException(Constants.ZKPORT);
-    return zkHost + ":" + zkPort;
+    if (zkHost != null && zkPort != null && zkRoot != null) {
+      auroraProperties.put("ZK_NODE", zkHost + ":" + zkPort);
+      auroraProperties.put("ZK_ROOT", zkRoot);
+    } else {
+      auroraProperties.put("ZK_NODE", context.getPropertyWithException(CuratorStateManager.ZK_CONNECTION_STRING));
+      auroraProperties.put("ZK_ROOT", context.getPropertyWithException(FileSystemStateManager.ROOT_ADDRESS));
+    }
   }
 
   private void addCustomBindProperties(Map<String, String> auroraProperties) {
@@ -171,8 +181,8 @@ public class AuroraLauncher implements ILauncher {
     auroraProperties.put("TOPOLOGY_PKG",
         PackerUtility.getTopologyPackageName(topology.getName(),
             context.getProperty(Constants.HERON_RELEASE_PACKAGE_NAME, "live")));
-    auroraProperties.put("ZK_NODE", getZkHostPort());
-    auroraProperties.put("ZK_ROOT", getZkRoot());
+
+    addZKProperties(auroraProperties);
 
     addCustomBindProperties(auroraProperties);
 

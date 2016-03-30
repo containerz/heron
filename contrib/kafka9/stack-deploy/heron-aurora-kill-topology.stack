@@ -1,0 +1,8 @@
+name: heron-aurora-kill-topology
+applications:
+  heron-kill-topology:
+    type: run-once
+    id: heron-kill-topology
+    cpu: 0.1
+    mem: 256
+    launch_command: "aurora job killall ${cluster_name}/root/devel/${heron_topology_name}"

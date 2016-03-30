@@ -34,7 +34,11 @@ public class AuroraStateManager extends CuratorStateManager {
     newConf.putAll(conf);
 
     String zkHost = (String) conf.get(Constants.ZKHOST);
-    Integer zkPort = Integer.parseInt((String) conf.get(Constants.ZKPORT));
+    String zkPortString = (String) conf.get(Constants.ZKPORT);
+    Integer zkPort = null;
+    if (zkPortString != null) {
+      zkPort = Integer.parseInt(zkPortString);
+    }
     String zkRoot = (String) conf.get(Constants.ZKROOT);
     String tunnelHost = (String) conf.get(Constants.TUNNEL);
 
@@ -42,30 +46,34 @@ public class AuroraStateManager extends CuratorStateManager {
     int timeout = Integer.parseInt((String) conf.get(Constants.ZK_CONNECTION_TIMEOUT_MS));
     boolean isVerbose = Boolean.parseBoolean((String) conf.get(Constants.HERON_VERBOSE));
 
-    if (!NetworkUtility.isLocationReachable(timeout, 1, 1000, zkHost, zkPort, isVerbose)) {
-      LOG.info("Will use tunnelling " + zkHost + ":" + zkPort);
-      int freePort = NetworkUtility.getFreePort();
-      if (isVerbose) {
-        LOG.info("Opening up tunnel to " + zkHost + " at " + freePort);
-      }
-      Process zkTunnel = ShellUtility.setupTunnel(
-          isVerbose, tunnelHost, freePort, zkHost, zkPort);
-      processHandles.add(zkTunnel);
+    if (zkHost != null && zkPort != null && zkRoot != null) {
+      if (!NetworkUtility.isLocationReachable(timeout, 1, 1000, zkHost, zkPort, isVerbose) && tunnelHost != null) {
+        LOG.info("Will use tunnelling " + zkHost + ":" + zkPort);
+        int freePort = NetworkUtility.getFreePort();
+        if (isVerbose) {
+          LOG.info("Opening up tunnel to " + zkHost + " at " + freePort);
+        }
+        Process zkTunnel = ShellUtility.setupTunnel(
+            isVerbose, tunnelHost, freePort, zkHost, zkPort);
+        processHandles.add(zkTunnel);
 
-      // Tunnel sometime takes longer to setup.
-      if (NetworkUtility.isLocationReachable(timeout, 10, 1000, "localhost", freePort, isVerbose)) {
-        String newHostPort = String.format("%s:%d", "localhost", freePort);
-        LOG.info("Connecting to zookeeper at " + newHostPort);
+        // Tunnel sometime takes longer to setup.
+        if (NetworkUtility.isLocationReachable(timeout, 10, 1000, "localhost", freePort, isVerbose)) {
+          String newHostPort = String.format("%s:%d", "localhost", freePort);
+          LOG.info("Connecting to zookeeper at " + newHostPort);
+          newConf.put(Constants.ZK_CONNECTION_STRING, newHostPort);
+          newConf.put(ROOT_ADDRESS, zkRoot);
+        } else {
+          throw new RuntimeException("Failed to setup the tunnel to Zookeeper Server");
+        }
+      } else {
+        String newHostPort = String.format("%s:%d", zkHost, zkPort);
+        LOG.info("Connecting to zookeeper at " + String.format("%s:%d", zkHost, zkPort));
         newConf.put(Constants.ZK_CONNECTION_STRING, newHostPort);
         newConf.put(ROOT_ADDRESS, zkRoot);
-      } else {
-        throw new RuntimeException("Failed to setup the tunnel to Zookeeper Server");
       }
     } else {
-      String newHostPort = String.format("%s:%d", zkHost, zkPort);
-      LOG.info("Connecting to zookeeper at " + String.format("%s:%d", zkHost, zkPort));
-      newConf.put(Constants.ZK_CONNECTION_STRING, newHostPort);
-      newConf.put(ROOT_ADDRESS, zkRoot);
+      LOG.info("Connecting to zookeeper at " + conf.get(ZK_CONNECTION_STRING));
     }
 
     super.initialize(newConf);

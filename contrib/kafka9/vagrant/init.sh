@@ -87,10 +87,23 @@ install_aurora_coordinator() {
     sudo -u aurora mesos-log initialize --path=/var/lib/aurora/scheduler/db
     sudo sed 's/EXTRA_SCHEDULER_ARGS=\"\"/EXTRA_SCHEDULER_ARGS=\"-min_offer_hold_time=1secs -enable_preemptor=false -offer_hold_jitter_window=1secs\"/' /etc/default/aurora-scheduler
     start aurora-scheduler
+    popd
+}
+
+install_aurora_client() {
+    mode=$1 # master | slave
+    mkdir -p /home/vagrant/aurora
+    pushd /home/vagrant/aurora
     # Installing client
     wget https://bintray.com/artifact/download/apache/aurora/ubuntu-trusty/aurora-tools_0.12.0_amd64.deb
     dpkg -i aurora-tools_0.12.0_amd64.deb
     popd
+    if [ $mode == "slave" ]; then
+        mkdir -p /root/.aurora
+        mkdir -p /home/vagrant/.aurora
+        cp clusters.json /root/.aurora/clusters.json
+        cp clusters.json /home/vagrant/.aurora/clusters.json
+    fi
 }
 
 install_aurora_worker() {
@@ -191,4 +204,5 @@ if [ $mode == "master" ]; then
 fi
 if [ $scheduler == "aurora" ]; then
     install_aurora_worker
+    install_aurora_client $mode
 fi
