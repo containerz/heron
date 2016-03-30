@@ -1,6 +1,6 @@
 {
   "id": "stack-deploy-dev",
-  "cmd": "chmod +x stack-deploy_v0.3.3.0 && ./stack-deploy_v0.3.3.0 server --api $HOST:$PORT0 --master master:2181 --marathon http://master:8080/ --debug --dev",
+  "cmd": "chmod +x stack-deploy && ./stack-deploy server --api $HOST:$PORT0 --master master:2181 --marathon http://master:8080/ --debug --dev",
   "cpus": 0.1,
   "mem": 256,
   "ports": [31918],
@@ -8,6 +8,6 @@
   "instances": 1,
   "constraints": [["hostname", "LIKE", "master"]],
   "uris": [
-    "file:///vagrant/contrib/kafka9/stack-deploy/stack-deploy_v0.3.3.0"
+    "file:///vagrant/contrib/kafka9/stack-deploy/stack-deploy"
   ]
 }
