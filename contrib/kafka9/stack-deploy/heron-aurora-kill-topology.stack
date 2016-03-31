@@ -5,4 +5,4 @@ applications:
     id: heron-kill-topology
     cpu: 0.1
     mem: 256
-    launch_command: "aurora job killall ${cluster_name}/root/devel/${heron_topology_name}"
+    launch_command: "aurora job killall $(hostname -f | rev | cut -d '.' -f 1 | rev)/root/devel/${heron_topology_name}"

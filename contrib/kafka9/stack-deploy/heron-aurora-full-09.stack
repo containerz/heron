@@ -68,7 +68,7 @@ applications:
     type: run-once
     id: heron-deps-install
     cpu: 0.1
-    mem: 128
+    mem: 256
     instances: all
     constraints:
     - - hostname
@@ -88,7 +88,7 @@ applications:
       - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
       - "http://repo.elodina.s3.amazonaws.com/pack_topology.conf"
       - "http://repo.elodina.s3.amazonaws.com/kafka-09-mirror_deploy.jar"
-    launch_command: "./bin/heron-cli2 submit \"dc=${cluster_name} role=root environ=devel heron.uploader.file.system.path=/opt/heron-packages\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path pack_topology.conf"
+    launch_command: "./bin/heron-cli2 submit \"dc=$(hostname -f | rev | cut -d '.' -f 1 | rev) role=root environ=devel heron.uploader.file.system.path=/opt/heron-packages\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path pack_topology.conf"
     dependencies:
       - kafka-mesos-09
       - heron-deps-install
@@ -119,6 +119,6 @@ applications:
       - "http://repo.elodina.s3.amazonaws.com/heron.aurora"
       - "http://repo.elodina.s3.amazonaws.com/heron_controller.aurora"
       - "http://repo.elodina.s3.amazonaws.com/kafka-09-mirror_deploy.jar"
-    launch_command: "mkdir cluster && touch cluster/${cluster_name}.conf && ./bin/heron-cli2 submit \"${cluster_name}/root/devel zk.connection.string=${exhibitor-mesos.zkConnect} heron.uploader.file.system.path=/opt/heron-packages uploader.class=\\\"com.twitter.heron.scheduler.util.Nullity\\$NullUploader\\\" heron.java.home.path=/usr heron.config.path=.\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
+    launch_command: "mkdir cluster && touch cluster/$(hostname -f | rev | cut -d '.' -f 1 | rev).conf && ./bin/heron-cli2 submit \"$(hostname -f | rev | cut -d '.' -f 1 | rev)/root/devel zk.connection.string=${exhibitor-mesos.zkConnect} heron.uploader.file.system.path=/opt/heron-packages uploader.class=\\\"com.twitter.heron.scheduler.util.Nullity\\$NullUploader\\\" heron.java.home.path=/usr heron.config.path=.\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
     dependencies:
       - heron-create-znodes

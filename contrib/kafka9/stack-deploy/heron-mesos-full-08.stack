@@ -68,7 +68,7 @@ applications:
     type: run-once
     id: heron-deps-install
     cpu: 0.1
-    mem: 128
+    mem: 256
     instances: all
     constraints:
     - - hostname
