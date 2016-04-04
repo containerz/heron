@@ -163,23 +163,19 @@ cd kafka_2.10-0.8.2.2/bin
 
 ## Shutting the topology down
 
-### Mesos
 In order to shut a topology down simply run:
+
+For Mesos:
 
 ```
 vagrant ssh master -c "./kill-topology-mesos.sh <topology_name>"
 ```
 
-### Aurora
-It is still quite unclear on how to gracefully shutdown a Heron topology on Aurora, which is hopefully to change in the nearest 
-future. Although it is always possible to kill an Aurora job, responsible for running the topology like this:
+For Aurora:
 
 ```
-vagrant ssh master -c "aurora job killall example/vagrant/devel/<topology_name>"
+vagrant ssh master -c "./kill-topology.sh <topology_name>"
 ```
-
-Note, that in this case, if you will want to restart a topology on the same cluster, you will need to use a different 
-topology name, as it will be still in a running state, as it is visible to Heron.
 
 ## Customization
 

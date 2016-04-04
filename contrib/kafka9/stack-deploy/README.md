@@ -74,7 +74,7 @@ cd kafka_2.10-0.9.0.0/bin
 ./kafka-console-consumer.sh --topic <target_topic> --bootstrap-server <bootstrap_broker> --new-consumer
 ```
 
-For Kafka 0.8:
+For Kafka 0.9:
 
 ```
 vagrant ssh master
@@ -89,10 +89,12 @@ cd kafka_2.10-0.8.2.2/bin
 
 ## Shutting the topology down
 
-There are specific stacks provided for killing the topologies which run on a Mesos and Aurora frameworks. You may use 
-them by running this from this dir:
+There are specific stacks provided for killing the topologies which run on Mesos and Aurora frameworks. You may use 
+them by running the below commands from this dir. Note however that these stacks are designed for using with clusters,
+so in order to use with the Vagrant image provided, you'll need to tweak artifact_urls and set `example` cluster name when
+it is needed to do so in the launch_command.
 
 ```
 ./stack-deploy add --file heron-aurora-kill-topology.stack
-./stack-deploy run heron-aurora-kill-topology --var "cluster_name=example" --var "heron_topology_name=<topology_name>"
+./stack-deploy run heron-<aurora|mesos>-kill-topology --var "heron_topology_name=<topology_name>"
 ```
