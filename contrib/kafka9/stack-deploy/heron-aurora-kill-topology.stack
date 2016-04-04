@@ -9,4 +9,4 @@ applications:
       - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
       - "http://repo.elodina.s3.amazonaws.com/aurora_scheduler.conf"
       - "http://repo.elodina.s3.amazonaws.com/aurora_bind.conf"
-    launch_command: "mkdir cluster && touch cluster/$(hostname -f | rev | cut -d '.' -f 1 | rev).conf && ./bin/heron-cli2 kill \"$(hostname -f | rev | cut -d '.' -f 1 | rev)/root/devel\" ${heron_topology_name} --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
+    launch_command: "mkdir cluster && touch cluster/$(hostname -f | rev | cut -d '.' -f 1 | rev).conf && ./bin/heron-cli2 kill \"$(hostname -f | rev | cut -d '.' -f 1 | rev)/root/devel zk.connection.string=${zk_url} heron.java.home.path=/usr heron.config.path=.\" ${heron_topology_name} --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
