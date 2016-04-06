@@ -23,15 +23,13 @@ In order to build Heron *and* the example topologies simply run the following fr
 ./build-ubuntu.sh
 ```
 
-If you have Heron built and want to build *only* the topology jars, execute from this dir:
+If you have Heron built and want to build *only* the topology jars, execute the below command from this dir. This will
+build only the fat jars, the targets for which are specified in the example topologies Bazel build file: 
+`contrib/kafka9/examples/src/java/BUILD`. The topologies jar files will be placed to `dist/topologies` dir.
 
 ```
 ./build-topologies.sh
 ```
-
-**Note:** The topologies jar files are placed to `dist/topologies` dir. If one wants a new topology to be built by 
-launching these commands, it would be necessary to include building that topology with Docker image. Please refer
-to `docker/compile.sh` for details.
 
 The last thing to do, if not done already, is to setup Heron CLI dir. In order to do this, run from the root dir:
 
