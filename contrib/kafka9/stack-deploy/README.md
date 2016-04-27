@@ -98,3 +98,21 @@ it is needed to do so in the launch_command.
 ./stack-deploy add --file heron-aurora-kill-topology.stack
 ./stack-deploy run heron-<aurora|mesos>-kill-topology --var "heron_topology_name=<topology_name>"
 ```
+
+## DCOS stacks
+These stacks also deploy the whole Heron infrastructure and showcase deployment of all necessary infrastructure pieces 
+required to get example topologies going. There are only Mesos-based stacks for now, as the Aurora not yet supported 
+for Elodina DCOS cluster provisioning. Stacks designed to not interfere with any infrastructure pieces already deployed 
+and to be easy to clean-out and re-deploy. Although, note that 08 and 09 stacks will conflict between each other if 
+deployed on the same cluster. 
+
+**NOTE:** Exhibitor-Mesos framework in these stacks holds its data in the json file. Thus, it is not necessary to 
+manually kill any Zookeeper nodes to restart this stack. Although, due to this specification one shouldn't use this 
+stack as is in production, Zookeeper should actually be used as a framework storage
+
+```
+# leader.mesos:2181 will be used as initial ZK connections for Exhibitor on Mesos 
+./stack-deploy add --file dcos-heron-mesos-full-<08|09>.stack
+./stack-deploy run heron-mesos-full-dcos --var "heron_topology_name=<topology_name>" --var \
+"source_topic=<source_topic>" --var "target_topic=<target_topic>"
+```
