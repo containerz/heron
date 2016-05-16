@@ -1,0 +1,11 @@
+name: heron-mesos-kill-topology
+applications:
+  heron-kill-topology:
+    type: run-once
+    id: heron-kill-topology
+    cpu: 0.1
+    mem: 256
+    artifact_urls:
+      - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
+      - "http://repo.elodina.s3.amazonaws.com/mesos_scheduler.conf"
+    launch_command: "./bin/heron-cli2 kill \"zk.connection.string=${zk_url} heron.mesos.framework.server.endpoint=http://heron.service:31988 heron.mesos.framework.zookeeper.endpoint=${zk_url}\" ${heron_topology_name} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path mesos_scheduler.conf"

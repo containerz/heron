@@ -51,6 +51,7 @@ public class FileSink implements IMetricsSink {
   private static final String EXCEPTIONS_COUNT = "exceptions-count";
   private static final String FLUSH_COUNT = "flush-count";
   private static final String RECORD_PROCESS_COUNT = "record-process-count";
+  private static final String PRETTY_PRINT = "pretty-print";
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   // We would convert a file's metrics into a JSON object, i.e. array
@@ -58,6 +59,9 @@ public class FileSink implements IMetricsSink {
   private static boolean isFileStart = true;
   private PrintStream writer;
   private String filenamePrefix;
+
+  private boolean prettyPrint;
+
   private int fileMaximum = 1;
   private int currentFileIndex = 0;
   private SinkContext sinkContext;
@@ -67,6 +71,7 @@ public class FileSink implements IMetricsSink {
     filenamePrefix = (String) conf.get(FILENAME_KEY) + "." + context.getMetricsMgrId();
     fileMaximum = TypeUtils.getInt(conf.get(MAXIMUM_FILE_COUNT_KEY));
     sinkContext = context;
+    prettyPrint = Boolean.parseBoolean((String) conf.get(PRETTY_PRINT));
 
     // We set System.out as writer's default value here to avoid null object
     writer = System.out;
@@ -128,7 +133,11 @@ public class FileSink implements IMetricsSink {
 
     String result = "";
     try {
-      result = MAPPER.writeValueAsString(jsonToWrite);
+      if (prettyPrint) {
+        result = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(jsonToWrite);
+      } else {
+        result = MAPPER.writeValueAsString(jsonToWrite);
+      }
     } catch (JsonProcessingException e) {
       LOG.log(Level.SEVERE, "Could not convert map to JSONString: " + jsonToWrite.toString(), e);
     }

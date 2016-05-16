@@ -1,0 +1,124 @@
+name: heron-aurora-full
+applications:
+  exhibitor-mesos:
+      type: "exhibitor-mesos-0.1.x"
+      id: exhibitor-mesos
+      version: 0.1
+      cpu: 0.1
+      mem: 512
+      ports:
+        - 31991
+      launch_command: "$(find jdk* -maxdepth 0 -type d)/bin/java -jar mesos-exhibitor-0.1.jar scheduler"
+      artifact_urls:
+        - "http://repo.elodina.s3.amazonaws.com/mesos-exhibitor-0.1.jar"
+        - "http://repo.elodina.s3.amazonaws.com/exhibitor-1.5.5-all.jar"
+        - "http://repo.elodina.s3.amazonaws.com/jdk-7u79-linux-x64.tar.gz"
+        - "http://repo.elodina.s3.amazonaws.com/zookeeper.tar.gz"
+      healthcheck: /health
+      scheduler:
+        api: http://$HOST:$PORT0
+        master: ${mesos.master}
+        debug: true
+        storage: "zk:${zk_url}/exhibitor-mesos"
+      tasks:
+        exhibitors:
+          id: 90
+          cpu: 0.1
+          mem: 1024
+          port: 31150
+          constraints: "hostname=unique"
+          configtype: zookeeper
+          zkconfigconnect: "${zk_url}"
+          zkconfigzpath: /exhibitor/config
+          zookeeper-install-directory: "/tmp/zookeeper"
+          zookeeper-data-directory: "/tmp/zkdata"
+
+  kafka-mesos-08:
+    type: "kafka-mesos-0.9.x"
+    id: kafka-mesos-08
+    version: 0.9.2
+    cpu: 0.1
+    mem: 512
+    ports:
+      - 31990
+    launch_command: "/usr/bin/java -jar kafka-mesos-0.9.2.0.jar scheduler"
+    artifact_urls:
+      - "https://github.com/mesos/kafka/releases/download/v0.9.2.0/kafka-mesos-0.9.2.0.jar"
+      - "http://repo.elodina.s3.amazonaws.com/kafka_2.10-0.8.2.2.tgz"
+    healthcheck: /health
+    scheduler:
+      api: http://$HOST:$PORT0
+      master: ${mesos.master}
+      zk: ${exhibitor-mesos.zkConnect}/kafka-08
+      storage: "zk:/kafka-mesos-08"
+      log: "./std-log.log"
+      debug: true
+    tasks:
+      brokers:
+        id: 80
+        cpus: 0.5
+        mem: 1024
+        constraints: "hostname=unique"
+        port: 31250
+        timeout: 3m
+    dependencies:
+      - exhibitor-mesos
+
+  heron-deps-install:
+    type: run-once
+    id: heron-deps-install
+    cpu: 0.1
+    mem: 256
+    instances: all
+    constraints:
+    - - hostname
+      - UNIQUE
+    launch_command: "yum -y install libunwind libcurl-devel"
+
+  heron-pack-topology:
+    type: run-once
+    id: heron-pack-topology
+    cpu: 0.1
+    mem: 256
+    instances: all
+    constraints:
+    - - hostname
+      - UNIQUE
+    artifact_urls:
+      - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
+      - "http://repo.elodina.s3.amazonaws.com/pack_topology.conf"
+      - "http://repo.elodina.s3.amazonaws.com/kafka-08-mirror_deploy.jar"
+    launch_command: "./bin/heron-cli2 submit \"dc=$(hostname -f | rev | cut -d '.' -f 1 | rev) role=root environ=devel heron.uploader.file.system.path=/opt/heron-packages\" kafka-08-mirror_deploy.jar com.twitter.heron.KafkaOldMirrorTopology ${heron_topology_name} broker-80.service:31250 ${source_topic} ${target_topic} ${exhibitor-mesos.zkConnect} /kafka-08 --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path pack_topology.conf"
+    dependencies:
+      - kafka-mesos-08
+      - heron-deps-install
+
+  heron-create-znodes:
+    type: run-once
+    id: heron-create-znodes
+    cpu: 0.1
+    mem: 256
+    artifact_urls:
+      - "http://repo.elodina.s3.amazonaws.com/solr-5.4.1.tgz"
+    launch_command: "./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/pplans
+    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/executionstate
+    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/tmasters
+    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/topologies"
+    dependencies:
+      - heron-pack-topology
+
+  heron-submit-topology:
+    type: run-once
+    id: heron-submit-topology
+    cpu: 0.1
+    mem: 256
+    artifact_urls:
+      - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
+      - "http://repo.elodina.s3.amazonaws.com/aurora_scheduler.conf"
+      - "http://repo.elodina.s3.amazonaws.com/aurora_bind.conf"
+      - "http://repo.elodina.s3.amazonaws.com/heron.aurora"
+      - "http://repo.elodina.s3.amazonaws.com/heron_controller.aurora"
+      - "http://repo.elodina.s3.amazonaws.com/kafka-08-mirror_deploy.jar"
+    launch_command: "mkdir cluster && touch cluster/$(hostname -f | rev | cut -d '.' -f 1 | rev).conf && ./bin/heron-cli2 submit \"$(hostname -f | rev | cut -d '.' -f 1 | rev)/root/devel zk.connection.string=${exhibitor-mesos.zkConnect} heron.uploader.file.system.path=/opt/heron-packages uploader.class=\\\"com.twitter.heron.scheduler.util.Nullity\\$NullUploader\\\" heron.java.home.path=/usr heron.config.path=.\" kafka-08-mirror_deploy.jar com.twitter.heron.KafkaOldMirrorTopology ${heron_topology_name} broker-80.service:31250 ${source_topic} ${target_topic} ${exhibitor-mesos.zkConnect} /kafka-08 --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
+    dependencies:
+      - heron-create-znodes

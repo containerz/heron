@@ -1,0 +1,32 @@
+name: heron-aurora-min
+applications:
+  heron-pack-topology:
+    type: run-once
+    id: heron-pack-topology
+    cpu: 0.1
+    mem: 256
+    instances: all
+    constraints:
+    - - hostname
+      - UNIQUE
+    artifact_urls:
+      - "file:///vagrant/heron-0.1.0-SNAPSHOT.tar.gz"
+      - "http://repo.elodina.s3.amazonaws.com/pack_topology.conf"
+      - "file:///vagrant/dist/topologies/kafka-08-mirror_deploy.jar"
+    launch_command: "./bin/heron-cli2 submit \"dc=${cluster_name} role=root environ=devel heron.uploader.file.system.path=/opt/heron-packages\" kafka-08-mirror_deploy.jar com.twitter.heron.KafkaOldMirrorTopology ${heron_topology_name} ${kafka_server} ${source_topic} ${target_topic} ${kafka_zk} ${kafka_zk_root} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path pack_topology.conf"
+
+  heron-submit-topology:
+    type: run-once
+    id: heron-submit-topology
+    cpu: 0.1
+    mem: 256
+    artifact_urls:
+      - "file:///vagrant/heron-0.1.0-SNAPSHOT.tar.gz"
+      - "file:///vagrant/contrib/kafka9/vagrant/conf/aurora_scheduler.conf"
+      - "file:///vagrant/contrib/kafka9/vagrant/conf/aurora_bind.conf"
+      - "file:///vagrant/contrib/kafka9/vagrant/conf/heron.aurora"
+      - "file:///vagrant/contrib/kafka9/vagrant/conf/heron_controller.aurora"
+      - "file:///vagrant/dist/topologies/kafka-08-mirror_deploy.jar"
+    launch_command: "mkdir cluster && touch cluster/${cluster_name}.conf && ./bin/heron-cli2 submit \"${cluster_name}/root/devel zk.connection.string=master:2181 heron.uploader.file.system.path=/opt/heron-packages uploader.class=\\\"com.twitter.heron.scheduler.util.Nullity\\$NullUploader\\\" heron.java.home.path=/usr/lib/jvm/java-8-openjdk-amd64 heron.config.path=.\" kafka-08-mirror_deploy.jar com.twitter.heron.KafkaOldMirrorTopology ${heron_topology_name} ${kafka_server} ${source_topic} ${target_topic} ${kafka_zk} ${kafka_zk_root} --config-loader com.twitter.heron.scheduler.aurora.AuroraConfigLoader --config-path ."
+    dependencies:
+      - heron-pack-topology
