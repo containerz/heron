@@ -46,6 +46,7 @@ docker run \
     -e HERON_BUILD_USER="${HERON_BUILD_USER}" \
     -e HERON_BUILD_TIME="${HERON_BUILD_TIME}" \
     -e HERON_TREE_STATUS="${HERON_TREE_STATUS}" \
+    -e TOPOLOGY_ONLY=$TOPOLOGY_ONLY \
     -v "$SOURCE_TARBALL:/src.tar.gz:ro" \
     -v "$OUTPUT_DIRECTORY:/dist" \
     -it heron-compiler:$TARGET_PLATFORM /compile-platform.sh
