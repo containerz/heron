@@ -40,7 +40,6 @@ def insert_bool(param, command_args):
 def insert_bool_values(command_line_args):
   args1 = insert_bool('--verbose', command_line_args)
   args2 = insert_bool('--deploy-deactivated', args1)
-  args3 = insert_bool('--trace-execution', args2)
   return args2
 
 def add_verbose(parser):
@@ -78,7 +77,7 @@ def add_topology_class(parser):
 def add_cluster_role_env(parser):
   parser.add_argument(
       'cluster/[role]/[env]',
-       help='Cluster, role, and environ to run topology'
+       help='Cluster, role, and environment to run topology'
   )
   return parser
 

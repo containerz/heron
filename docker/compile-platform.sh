@@ -34,41 +34,22 @@ fi
 ./bazel_configure.py
 bazel clean
 
-pack_topologies() {
-  echo "Building required topologies and including to /dist"
-  bazel build //contrib/kafka9/examples/src/java:all-targets
-  mkdir -p $OUTPUT_DIRECTORY/topologies
-  cp ./bazel-bin/contrib/kafka9/examples/src/java/*_deploy.jar $OUTPUT_DIRECTORY/topologies
-}
+echo "Creating packages"
+bazel build -c opt --config=$CONFIG_PLATFORM scripts/packages:tarpkgs
+bazel build -c opt --config=$CONFIG_PLATFORM scripts/packages:binpkgs
 
+echo "Moving packages to /$OUTPUT_DIRECTORY"
+for file in ./bazel-bin/scripts/packages/*.tar.gz; do
+  filename=$(basename $file)
+  dest=$OUTPUT_DIRECTORY/${filename/.tar/-$HERON_VERSION-$TARGET_PLATFORM.tar}
 
-pack_release() {
-  echo "Creating packages"
-  bazel build -c opt --config=$CONFIG_PLATFORM scripts/packages:tarpkgs
-  bazel build -c opt --config=$CONFIG_PLATFORM scripts/packages:binpkgs
+  copyFileToDest $file $dest
+done
 
-  echo "Moving packages to /$OUTPUT_DIRECTORY"
-  for file in ./bazel-bin/scripts/packages/*.tar.gz; do
-    filename=$(basename $file)
-    dest=$OUTPUT_DIRECTORY/${filename/.tar/-$HERON_VERSION-$TARGET_PLATFORM.tar}
+echo "Moving install scripts to /$OUTPUT_DIRECTORY"
+for file in ./bazel-bin/scripts/packages/*.sh; do
+  filename=$(basename $file)
+  dest=$OUTPUT_DIRECTORY/${filename/.sh/-$HERON_VERSION-$TARGET_PLATFORM.sh}
 
-    copyFileToDest $file $dest
-  done
-
-  echo "Moving install scripts to /$OUTPUT_DIRECTORY"
-  for file in ./bazel-bin/scripts/packages/*.sh; do
-    filename=$(basename $file)
-    dest=$OUTPUT_DIRECTORY/${filename/.sh/-$HERON_VERSION-$TARGET_PLATFORM.sh}
-
-    copyFileToDest $file $dest
-  done
-}
-
-if [ -z $TOPOLOGY_ONLY ]
-then
-    pack_release
-    pack_topologies
-else
-    echo "TOPOLOGY_ONLY is set. Packing only the topology"
-    pack_topologies
-fi
+  copyFileToDest $file $dest
+done

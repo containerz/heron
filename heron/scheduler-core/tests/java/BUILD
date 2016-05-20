@@ -4,6 +4,7 @@ common_deps_files = [
     "@guava//jar",
     "//3rdparty/java:powermock",
     "//heron/api/src/java:api-java",
+    "//heron/common/src/java:basics-java",
     "//heron/scheduler-core/src/java:scheduler-java",
     "@bazel_tools//third_party:junit4",
     "@bazel_tools//third_party:mockito",
@@ -38,6 +39,27 @@ java_test(
   name="runtime-manager-runner_unittest",
   srcs=glob(
     ["**/RuntimeManagerRunnerTest.java"] +
+    ["**/util/TopologyUtilityTest.java"]
+  ),
+  deps=scheduler_deps_files,
+  size="small",
+)
+
+java_test(
+  name="runtime-manager-main_unittest",
+  srcs=glob(
+    ["**/RuntimeManagerMainTest.java"] +
+    ["**/util/TopologyUtilityTest.java"]
+  ),
+  deps=scheduler_deps_files  +
+    ["//heron/statemgrs/src/java:null-statemgr-java"],
+  size="small",
+)
+
+java_test(
+  name="submitter-main_unittest",
+  srcs=glob(
+    ["**/SubmitterMainTest.java"] +
     ["**/util/TopologyUtilityTest.java"]
   ),
   deps=scheduler_deps_files,
@@ -82,5 +104,15 @@ java_test(
     ["**/HttpServiceSchedulerClientTest.java"]
   ),
   deps=scheduler_deps_files,
+  size="small",
+)
+
+java_test(
+  name="scheduler_client_factory_unittest",
+  srcs=glob(
+    ["**/SchedulerClientFactoryTest.java"]
+  ),
+  deps=scheduler_deps_files +
+    ["//heron/schedulers/src/java:null-scheduler-java"],
   size="small",
 )

@@ -32,7 +32,7 @@ public class Context {
   }
 
   public static Boolean verbose(Config cfg) {
-    return cfg.getBooleanValue(ConfigKeys.get("VERBOSE"));
+    return cfg.getBooleanValue(ConfigKeys.get("VERBOSE"), true);
   }
 
   public static String configPath(Config cfg) {
@@ -88,7 +88,7 @@ public class Context {
   }
 
   public static Boolean schedulerService(Config cfg) {
-    return cfg.getBooleanValue(ConfigKeys.get("SCHEDULER_IS_SERVICE"));
+    return cfg.getBooleanValue(ConfigKeys.get("SCHEDULER_IS_SERVICE"), true);
   }
 
   public static String clusterFile(Config cfg) {
@@ -314,10 +314,6 @@ public class Context {
 
   public static String schedulerSandboxJar(Config cfg) {
     return cfg.getStringValue(ConfigKeys.get("SANDBOX_SCHEDULER_JAR"));
-  }
-
-  public static String logSandboxDirectory(Config cfg) {
-    return cfg.getStringValue(ConfigKeys.get("SANDBOX_LOGGING_DIRECTORY"));
   }
 
   public static final String instanceSandboxClassPath(Config cfg) {

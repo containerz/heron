@@ -85,18 +85,6 @@ java_library(
 )
 
 java_library(
-    name = "kryo-nl",
-    srcs = [ "Empty.java" ],
-    exports = [ "@kryo//jar" ],
-    deps = [
-        "@kryo//jar",
-        "@minlog//jar",
-        "@objenesis//jar",
-    ],
-    neverlink = 1,
-)
-
-java_library(
     name = "hadoop-core",
     srcs = [ "Empty.java" ],
     exports = ["@hadoop-core//jar" ],
@@ -132,12 +120,5 @@ java_library(
     srcs = [ "Empty.java" ],
     deps = [ "@protobuf-java//jar" ],
     exports = [ "@checkstyle//jar" ],
-    neverlink = 1,
-)
-
-java_library(
-    name = "protobuf-java-nl",
-    visibility = ["//visibility:public"],
-    exports = [ "@protobuf-java//jar" ],
     neverlink = 1,
 )

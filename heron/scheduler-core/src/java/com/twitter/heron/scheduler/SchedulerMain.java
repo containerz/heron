@@ -29,6 +29,7 @@ import org.apache.commons.cli.ParseException;
 import com.twitter.heron.api.generated.TopologyAPI;
 import com.twitter.heron.common.basics.Constants;
 import com.twitter.heron.common.basics.FileUtils;
+import com.twitter.heron.common.basics.SysUtils;
 import com.twitter.heron.common.config.SystemConfig;
 import com.twitter.heron.common.utils.logging.LoggingHelper;
 import com.twitter.heron.scheduler.server.SchedulerServer;
@@ -53,40 +54,19 @@ import com.twitter.heron.spi.utils.TopologyUtils;
 public class SchedulerMain {
   private static final Logger LOG = Logger.getLogger(SchedulerMain.class.getName());
 
-  private String cluster = null;                 // name of the cluster
-  private String role = null;                    // role to launch the topology
-  private String environ = null;                 // environ to launch the topology
-  private String topologyName = null;            // name of the topology
-  private String topologyJarFile = null;         // name of the topology jar/tar file
-  private int schedulerServerPort = 0;       // http port where the scheduler is listening
+  private int schedulerServerPort = -1;       // http port where the scheduler is listening
 
   private TopologyAPI.Topology topology = null;  // topology definition
   private Config config;                        // holds all the config read
 
   public SchedulerMain(
-      String iCluster,
-      String iRole,
-      String iEnviron,
-      String iTopologyName,
-      String iTopologyJarFile,
-      int iSchedulerServerPort) throws IOException {
+      Config config,
+      TopologyAPI.Topology topology,
+      int schedulerServerPort) {
     // initialize the options
-    cluster = iCluster;
-    role = iRole;
-    environ = iEnviron;
-    topologyName = iTopologyName;
-    topologyJarFile = iTopologyJarFile;
-    schedulerServerPort = iSchedulerServerPort;
-
-    // locate the topology definition file in the sandbox/working directory
-    String topologyDefnFile = TopologyUtils.lookUpTopologyDefnFile(".", topologyName);
-
-    // load the topology definition into topology proto
-    topology = TopologyUtils.getTopology(topologyDefnFile);
-
-    // build the config by expanding all the variables
-    config = SchedulerConfig.loadConfig(cluster, role, environ,
-        topologyJarFile, topologyDefnFile, topology);
+    this.config = config;
+    this.topology = topology;
+    this.schedulerServerPort = schedulerServerPort;
   }
 
   // Print usage options
@@ -195,16 +175,12 @@ public class SchedulerMain {
 
     // initialize the scheduler with the options
     String topologyName = cmd.getOptionValue("topology_name");
-    SchedulerMain schedulerMain = new SchedulerMain(cmd.getOptionValue("cluster"),
+    SchedulerMain schedulerMain = createInstance(cmd.getOptionValue("cluster"),
         cmd.getOptionValue("role"),
         cmd.getOptionValue("environment"),
-        topologyName,
         cmd.getOptionValue("topology_jar"),
+        topologyName,
         Integer.parseInt(cmd.getOptionValue("http_port")));
-
-    // set up logging with complete Config
-    setupLogging(schedulerMain.config);
-    LOG.log(Level.INFO, "Loaded scheduler config: {0}", schedulerMain.config);
 
     // run the scheduler
     boolean ret = schedulerMain.runScheduler();
@@ -216,6 +192,37 @@ public class SchedulerMain {
       // stop the server and close the state manager
       LOG.log(Level.INFO, "Shutting down topology: {0}", topologyName);
     }
+  }
+
+  public static SchedulerMain createInstance(String cluster,
+                                             String role,
+                                             String env,
+                                             String topologyJar,
+                                             String topologyName,
+                                             int httpPort) throws IOException {
+    // Look up the topology def file location
+    String topologyDefnFile = TopologyUtils.lookUpTopologyDefnFile(".", topologyName);
+
+    // load the topology definition into topology proto
+    TopologyAPI.Topology topology = TopologyUtils.getTopology(topologyDefnFile);
+
+    // build the config by expanding all the variables
+    Config schedulerConfig = SchedulerConfig.loadConfig(
+        cluster,
+        role,
+        env,
+        topologyJar,
+        topologyDefnFile,
+        topology);
+
+    // set up logging with complete Config
+    setupLogging(schedulerConfig);
+
+    // Create a new instance
+    SchedulerMain schedulerMain = new SchedulerMain(schedulerConfig, topology, httpPort);
+
+    LOG.log(Level.INFO, "Loaded scheduler config: {0}", schedulerMain.config);
+    return schedulerMain;
   }
 
   // Set up logging based on the Config
@@ -362,9 +369,9 @@ public class SchedulerMain {
       }
 
       // 4. Close the resources
-      scheduler.close();
-      packing.close();
-      statemgr.close();
+      SysUtils.closeIgnoringExceptions(scheduler);
+      SysUtils.closeIgnoringExceptions(packing);
+      SysUtils.closeIgnoringExceptions(statemgr);
     }
 
     return isSuccessful;
