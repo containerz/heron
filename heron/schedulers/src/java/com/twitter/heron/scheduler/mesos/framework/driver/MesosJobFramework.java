@@ -1,35 +1,19 @@
 package com.twitter.heron.scheduler.mesos.framework.driver;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.mesos.Protos;
-import org.apache.mesos.Scheduler;
-import org.apache.mesos.SchedulerDriver;
-
 import com.twitter.heron.scheduler.mesos.framework.config.FrameworkConfiguration;
 import com.twitter.heron.scheduler.mesos.framework.jobs.BaseJob;
 import com.twitter.heron.scheduler.mesos.framework.jobs.BaseTask;
 import com.twitter.heron.scheduler.mesos.framework.jobs.TaskUtils;
 import com.twitter.heron.scheduler.mesos.framework.state.PersistenceStore;
+import org.apache.mesos.Protos;
+import org.apache.mesos.Scheduler;
+import org.apache.mesos.SchedulerDriver;
+
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MesosJobFramework implements Scheduler {
   private static final Logger LOG = Logger.getLogger(MesosJobFramework.class.getName());

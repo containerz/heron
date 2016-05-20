@@ -1,12 +1,12 @@
 package com.twitter.heron.scheduler.mesos.framework.jobs;
 
-import java.util.Map;
-import java.util.logging.Logger;
-
 import com.twitter.heron.scheduler.mesos.framework.config.FrameworkConfiguration;
 import com.twitter.heron.scheduler.mesos.framework.driver.MesosDriverFactory;
 import com.twitter.heron.scheduler.mesos.framework.driver.MesosJobFramework;
 import com.twitter.heron.scheduler.mesos.framework.state.PersistenceStore;
+
+import java.util.Map;
+import java.util.logging.Logger;
 
 public class JobScheduler {
   private static final Logger LOG = Logger.getLogger(JobScheduler.class.getName());

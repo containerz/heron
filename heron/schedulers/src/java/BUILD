@@ -25,6 +25,17 @@ scheduler_deps_files = \
     spi_deps_files + \
     api_deps_files
 
+mesos_scheduler_extra_deps_files = [
+    "@mesos//jar",
+    "//3rdparty/java:jackson",
+    "@curator-framework//jar",
+    "@curator-client//jar",
+]
+
+mesos_scheduler_deps = \
+    scheduler_deps_diles + \
+    mesos_scheduler_extra_deps_files
+
 java_library(
     name='local-scheduler-java',
     srcs = glob(["**/local/*.java"]),
@@ -89,5 +100,24 @@ genrule(
     name = "heron-null-scheduler",
     srcs = [":null-scheduler-unshaded_deploy.jar"],
     outs = ["heron-null-scheduler.jar"],
+    cmd  = "cp $< $@",
+)
+
+java_library(
+    name='mesos-scheduler-java',
+    srcs = glob(["**/mesos/*.java"]),
+    deps = mesos_scheduler_deps,
+)
+
+java_binary(
+    name='mesos-scheduler-unshaded',
+    srcs = glob(["**/mesos/*.java"]),
+    deps = mesos_scheduler_deps,
+)
+
+genrule(
+    name = "heron-mesos-scheduler",
+    srcs = [":mesos-scheduler-unshaded_deploy.jar"],
+    outs = ["heron-mesos-scheduler.jar"],
     cmd  = "cp $< $@",
 )

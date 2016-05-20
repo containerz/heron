@@ -1,13 +1,12 @@
 package com.twitter.heron.scheduler.mesos.framework.driver;
 
-import java.util.logging.Logger;
-
+import com.twitter.heron.scheduler.mesos.framework.config.FrameworkConfiguration;
+import com.twitter.heron.scheduler.mesos.framework.state.PersistenceStore;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
-import com.twitter.heron.scheduler.mesos.framework.config.FrameworkConfiguration;
-import com.twitter.heron.scheduler.mesos.framework.state.PersistenceStore;
+import java.util.logging.Logger;
 
 public class MesosDriverFactory {
   private static final Logger LOG = Logger.getLogger(MesosDriverFactory.class.getName());
