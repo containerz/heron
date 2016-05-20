@@ -95,33 +95,27 @@ public class MesosScheduler implements IScheduler {
   private JobScheduler getJobScheduler() {
     String rootPath =
         String.format("%s/%s",
-            config.getStringValue(MesosConfig.HERON_MESOS_FRAMEWORK_ZOOKEEPER_ROOT),
+            MesosContext.frameworkZKRoot(config),
             topologyName);
 
     int connectionTimeoutMs =
-        Integer.parseInt(config.getStringValue(MesosConfig.HERON_MESOS_FRAMEWORK_ZOOKEEPER_CONNECT_TIMEOUT));
+        MesosContext.frameworkZKConnectTimeout(config);
     int sessionTimeoutMs =
-        Integer.parseInt(config.getStringValue(MesosConfig.HERON_MESOS_FRAMEWORK_ZOOKEEPER_SESSION_TIMEOUT));
+        MesosContext.frameworkZKSessionTimeout(config);
 
     persistenceStore = new ZkPersistenceStore(
-        config.getStringValue(MesosConfig.HERON_MESOS_FRAMEWORK_ZOOKEEPER_ENDPOINT),
+            MesosContext.frameworkZKEndpoint(config),
         connectionTimeoutMs, sessionTimeoutMs,
         rootPath);
 
     FrameworkConfiguration frameworkConfig = FrameworkConfiguration.getFrameworkConfiguration();
     frameworkConfig.schedulerName = topologyName + "-framework";
-    frameworkConfig.master = config.getStringValue(MesosConfig.MESOS_MASTER_URI_PREFIX);
+    frameworkConfig.master = MesosContext.mesosMasterURI(config);
     frameworkConfig.user = Context.role(config);
 
-    frameworkConfig.failoverTimeoutSeconds =
-        Integer.parseInt(
-            config.getStringValue(
-                MesosConfig.HERON_MESOS_FRAMEWORK_FAILOVER_TIMEOUT_SECONDS));
+    frameworkConfig.failoverTimeoutSeconds = MesosContext.failoverTimeoutSeconds(config);
 
-    frameworkConfig.reconciliationIntervalInMs =
-        Long.parseLong(
-            config.getStringValue(
-                MesosConfig.HERON_MESOS_FRAMEWORK_RECONCILIATION_INTERVAL_MS));
+    frameworkConfig.reconciliationIntervalInMs = MesosContext.reconciliationIntervalMS(config);
     frameworkConfig.hostname = "";
 
     MesosTaskBuilder mesosTaskBuilder = new MesosTaskBuilder();
@@ -293,11 +287,11 @@ public class MesosScheduler implements IScheduler {
     }
 
     String heronTMasterArguments = getHeronTMasterArguments(config,
-        Integer.parseInt(config.getStringValue(MesosConfig.TMASTER_CONTROLLER_PORT)),
-        Integer.parseInt(config.getStringValue(MesosConfig.TMASTER_MAIN_PORT)),
-        Integer.parseInt(config.getStringValue(MesosConfig.TMASTER_STAT_PORT)),
-        Integer.parseInt(config.getStringValue(MesosConfig.TMASTER_SHELL_PORT)),
-        Integer.parseInt(config.getStringValue(MesosConfig.TMASTER_METRICSMGR_PORT)));
+            MesosContext.tmastercontrollerPort(config),
+            MesosContext.tmasterMainPort(config),
+            MesosContext.tmasterStatPort(config),
+            MesosContext.tmasterShellPort(config),
+            MesosContext.tmasterMetricsMgrPort(config));
 
     try {
       FileWriter fw = new FileWriter(tmasterRunScript);

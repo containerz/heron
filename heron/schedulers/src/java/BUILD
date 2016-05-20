@@ -107,6 +107,7 @@ java_library(
     name='mesos-scheduler-java',
     srcs = glob(["**/mesos/*.java"]),
     deps = mesos_scheduler_deps,
+    resources = glob(["**/mesos/*.yaml"]),
 )
 
 java_binary(
