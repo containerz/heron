@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 DIST_DIR=/vagrant/dist/ubuntu
-HERON_CONF_PATH=/vagrant/contrib/kafka9/vagrant/conf/mesos_scheduler.conf
+HERON_CONF_PATH=/vagrant/contrib/kafka9/vagrant/conf
 
 if [[ $# -ne 1 ]] ; then
     echo 'USAGE: ./kill-topology-mesos.sh <topology_name>'
@@ -9,5 +9,5 @@ if [[ $# -ne 1 ]] ; then
 fi
 
 pushd ${DIST_DIR}
-    ./heron-0.1.0-SNAPSHOT/bin/heron-cli2 kill "" $1 --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path ${HERON_CONF_PATH}
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./heron-0.12.0/bin/heron kill mesos/vagrant $1 --config-path ${HERON_CONF_PATH} --heron_home /vagrant/dist/heron-0.12.0
 popd

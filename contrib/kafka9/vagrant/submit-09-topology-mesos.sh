@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 DIST_DIR=/vagrant/dist
-HERON_CONF_PATH=/vagrant/contrib/kafka9/vagrant/conf/mesos_scheduler.conf
+HERON_CONF_PATH=/vagrant/contrib/kafka9/vagrant/conf
 
 if [[ $# -ne 4 ]] ; then
     echo 'USAGE: ./submit-09-topology-mesos.sh <topology_name> <bootstrap_broker> <source_topic> <target_topic>'
@@ -9,5 +9,5 @@ if [[ $# -ne 4 ]] ; then
 fi
 
 pushd ${DIST_DIR}/ubuntu
-    ./heron-0.1.0-SNAPSHOT/bin/heron-cli2 submit "heron.topology.pkg.uri: file:///vagrant/dist/packages/example/devel/vagrant/$1/topology.tar.gz" ${DIST_DIR}/topologies/kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology $1 $2 $3 $4 --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path ${HERON_CONF_PATH}
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./heron-0.12.0/bin/heron submit mesos/vagrant ${DIST_DIR}/topologies/kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology $1 $2 $3 $4 --config-path ${HERON_CONF_PATH} --heron_home /vagrant/dist/heron-0.12.0
 popd

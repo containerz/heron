@@ -137,6 +137,12 @@ print_usage() {
     echo "Usage: $0 master|slave mesos|aurora"
 }
 
+copy_vagrant_conf() {
+    rm -rf /vagrant/dist/ubuntu/heron-0.12.0/mesos
+    mkdir -p /vagrant/dist/ubuntu/heron-0.12.0/mesos
+    cp /vagrant/contrib/kafka9/vagrant/conf/mesos/* /vagrant/dist/ubuntu/heron-0.12.0/conf/mesos
+}
+
 if [[ $1 != "master" && $1 != "slave" ]]; then
     print_usage
     exit 1
@@ -195,10 +201,12 @@ if [ $mode == "master" ]; then
     if [ $scheduler == "aurora" ]; then
         install_aurora_coordinator
     fi
-    if [ $scheduler == "mesos" ]; then
-        ./submit-mesos-scheduler.sh
-    fi
+    # if [ $scheduler == "mesos" ]; then
+    #     ./submit-mesos-scheduler.sh
+    # fi
     ./../../../setup-cli-ubuntu.sh
+    copy_vagrant_conf
+
     setup_heron_zk_nodes
     copy_scripts
 fi
