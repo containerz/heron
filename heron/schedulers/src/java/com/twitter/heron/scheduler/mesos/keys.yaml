@@ -12,3 +12,6 @@ TMASTER_MAIN_PORT: "tmaster.main.port"
 TMASTER_CONTROLLER_PORT: "tmaster.controller.port"
 TMASTER_SHELL_PORT: "tmaster.shell.port"
 TMASTER_METRICSMGR_PORT: "tmaster.metricsmgr.port"
+
+# config key for specifying the working directory of a topology
+WORKING_DIRECTORY:        heron.scheduler.local.working.directory

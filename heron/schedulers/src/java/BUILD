@@ -30,10 +30,11 @@ mesos_scheduler_extra_deps_files = [
     "//3rdparty/java:jackson",
     "@curator-framework//jar",
     "@curator-client//jar",
+    "@zookeeper//jar",
 ]
 
 mesos_scheduler_deps = \
-    scheduler_deps_diles + \
+    scheduler_deps_files + \
     mesos_scheduler_extra_deps_files
 
 java_library(
@@ -105,15 +106,16 @@ genrule(
 
 java_library(
     name='mesos-scheduler-java',
-    srcs = glob(["**/mesos/*.java"]),
+    srcs = glob(["com/twitter/heron/scheduler/mesos/**/*.java"]),
     deps = mesos_scheduler_deps,
     resources = glob(["**/mesos/*.yaml"]),
 )
 
 java_binary(
     name='mesos-scheduler-unshaded',
-    srcs = glob(["**/mesos/*.java"]),
+    srcs = glob(["com/twitter/heron/scheduler/mesos/**/*.java"]),
     deps = mesos_scheduler_deps,
+    resources = glob(["**/mesos/*.yaml"]),
 )
 
 genrule(

@@ -12,3 +12,6 @@ TMASTER_MAIN_PORT: 5001
 TMASTER_CONTROLLER_PORT: 5002
 TMASTER_SHELL_PORT: 5003
 TMASTER_METRICSMGR_PORT: 5004
+
+# default value for the config key that specifies the working directory
+WORKING_DIRECTORY:       ${HOME}/.herondata/topologies/${CLUSTER}/${ROLE}/${TOPOLOGY}

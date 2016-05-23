@@ -1,8 +1,9 @@
 package com.twitter.heron.scheduler.mesos;
 
 import com.twitter.heron.api.generated.TopologyAPI;
+import com.twitter.heron.common.basics.FileUtils;
+import com.twitter.heron.common.basics.SysUtils;
 import com.twitter.heron.proto.scheduler.Scheduler;
-import com.twitter.heron.proto.tmaster.TopologyMaster;
 import com.twitter.heron.scheduler.mesos.framework.config.FrameworkConfiguration;
 import com.twitter.heron.scheduler.mesos.framework.driver.MesosDriverFactory;
 import com.twitter.heron.scheduler.mesos.framework.driver.MesosJobFramework;
@@ -11,17 +12,18 @@ import com.twitter.heron.scheduler.mesos.framework.jobs.BaseJob;
 import com.twitter.heron.scheduler.mesos.framework.jobs.JobScheduler;
 import com.twitter.heron.scheduler.mesos.framework.state.PersistenceStore;
 import com.twitter.heron.scheduler.mesos.framework.state.ZkPersistenceStore;
-import com.twitter.heron.scheduler.mesos.util.NetworkUtility;
 import com.twitter.heron.spi.common.*;
 import com.twitter.heron.spi.scheduler.IScheduler;
 import com.twitter.heron.spi.statemgr.SchedulerStateManagerAdaptor;
 import com.twitter.heron.spi.utils.Runtime;
+import com.twitter.heron.spi.utils.SchedulerUtils;
+import com.twitter.heron.spi.utils.TopologyUtils;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,18 +42,15 @@ public class MesosScheduler implements IScheduler {
 
   private Config config;
   private Config runtime;
+  private PackingPlan packing;
   private AtomicBoolean tmasterRestart;
-  private Thread tmasterRunThread;
   private Process tmasterProcess;
+  private String topologyPackageUri;
+  private String corePackageURI;
 
   private TopologyAPI.Topology topology;
-  private String topologyName;
-  private SchedulerStateManagerAdaptor stateManager;
 
   private JobScheduler jobScheduler;
-  private volatile CountDownLatch startLatch;
-
-  private String executorCmdTemplate = "";
 
   private final Map<Integer, BaseJob> executorShardToJob = new ConcurrentHashMap<>();
 
@@ -59,12 +58,13 @@ public class MesosScheduler implements IScheduler {
 
   private MesosJobFramework mesosJobFramework;
 
-  private void startRegularContainers(PackingPlan packing) {
+  private void startRegularContainers() {
+
     LOG.info("We are to start the new mesos job scheduler now");
     this.topology = Runtime.topology(runtime);
 
     int shardId = 0;
-    this.executorCmdTemplate = getExecutorCmdTemplate();
+    String executorCmdTemplate = getExecutorCmdTemplate();
 
     for (PackingPlan.ContainerPlan container : packing.containers.values()) {
       shardId++;
@@ -73,7 +73,7 @@ public class MesosScheduler implements IScheduler {
     }
 
     LOG.info("Wait for jobScheduler's availability");
-    startLatch = new CountDownLatch(1);
+    CountDownLatch startLatch = new CountDownLatch(1);
     if (mesosJobFramework.setSafeLatch(startLatch)) {
       try {
         if (!startLatch.await(MAX_WAIT_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
@@ -96,7 +96,7 @@ public class MesosScheduler implements IScheduler {
     String rootPath =
         String.format("%s/%s",
             MesosContext.frameworkZKRoot(config),
-            topologyName);
+            Runtime.topologyName(runtime));
 
     int connectionTimeoutMs =
         MesosContext.frameworkZKConnectTimeout(config);
@@ -104,12 +104,12 @@ public class MesosScheduler implements IScheduler {
         MesosContext.frameworkZKSessionTimeout(config);
 
     persistenceStore = new ZkPersistenceStore(
-            MesosContext.frameworkZKEndpoint(config),
+        MesosContext.frameworkZKEndpoint(config),
         connectionTimeoutMs, sessionTimeoutMs,
         rootPath);
 
     FrameworkConfiguration frameworkConfig = FrameworkConfiguration.getFrameworkConfiguration();
-    frameworkConfig.schedulerName = topologyName + "-framework";
+    frameworkConfig.schedulerName = Runtime.topologyName(runtime) + "-framework";
     frameworkConfig.master = MesosContext.mesosMasterURI(config);
     frameworkConfig.user = Context.role(config);
 
@@ -130,8 +130,20 @@ public class MesosScheduler implements IScheduler {
 
   @Override
   public boolean onSchedule(PackingPlan packing) {
+    this.packing = packing;
+    // Start tmaster.
+    createTmasterRunScript();
+    Thread tmasterRunThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        runTmaster();
+      }
+    });
+    tmasterRunThread.setDaemon(true);
+    tmasterRunThread.start();
+
     // Start regular containers other than TMaster
-    startRegularContainers(packing);
+    startRegularContainers();
     return true;
   }
 
@@ -144,15 +156,15 @@ public class MesosScheduler implements IScheduler {
     jobDef.retries = Integer.MAX_VALUE;
     jobDef.owner = Context.role(config);
     jobDef.runAsUser = Context.role(config);
-    jobDef.description = "Container for id: " + container.id + " for topology: " + topologyName;
+    jobDef.description = "Container for id: " + container.id + " for topology: " + Runtime.topologyName(runtime);
     jobDef.cpu = container.resource.cpu;
     jobDef.disk = container.resource.disk / Constants.MB;
     jobDef.mem = container.resource.ram / Constants.MB;
     jobDef.shell = true;
 
     jobDef.uris = new ArrayList<>();
-    String topologyPath = Runtime.topologyPackageUri(runtime).toString();
-    String heronCoreReleasePath = Context.corePackageUri(config);
+    String topologyPath = topologyPackageUri;
+    String heronCoreReleasePath = corePackageURI;
     jobDef.uris.add(topologyPath);
     jobDef.uris.add(heronCoreReleasePath);
 
@@ -166,17 +178,17 @@ public class MesosScheduler implements IScheduler {
 
   private String getExecutorCmdTemplate() {
     String topologyTarfile = extractFilenameFromUri(
-        Runtime.topologyPackageUri(runtime).toString());
+        topologyPackageUri);
     String heronCoreFile = extractFilenameFromUri(
-        Context.corePackageUri(config));
+        corePackageURI);
 
     String cmd = String.format(
-        "rm %s %s && mkdir log-files && ./heron-executor",
-         topologyTarfile, heronCoreFile);
+        "tar -xvf %s && rm %s %s && %s",
+        topologyTarfile, topologyTarfile, heronCoreFile, Context.executorSandboxBinary(config));
 
     StringBuilder command = new StringBuilder(cmd);
 
-    String executorArgs = getHeronJobExecutorArguments(config);
+    String executorArgs = getHeronJobExecutorArguments();
 
     command.append(" %d");
     command.append(" " + executorArgs);
@@ -194,17 +206,9 @@ public class MesosScheduler implements IScheduler {
     // Start the jobScheduler
     this.jobScheduler = getJobScheduler();
     this.jobScheduler.start();
-
-    // Start tmaster.
-    createTmasterRunScript();
-    tmasterRunThread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        runTmaster();
-      }
-    });
-    tmasterRunThread.setDaemon(true);
-    tmasterRunThread.start();
+    //TODO: should be a temporary workaround
+    this.topologyPackageUri = System.getenv("TOPOLOGY_PACKAGE_URI");
+    this.corePackageURI = System.getenv("CORE_PACKAGE_URI");
   }
 
   @Override
@@ -236,41 +240,18 @@ public class MesosScheduler implements IScheduler {
 
     // Clear the frameworkId
     LOG.info("Mesos jobs killed; to clean up...");
-    return persistenceStore.removeFrameworkID() && persistenceStore.clean();
+    mesosJobFramework.killFramework();
+    persistenceStore.removeFrameworkID();
+    persistenceStore.clean();
+    tmasterRestart.set(false);
+    tmasterProcess.destroy();
+    //TODO: also need some delayed shutdown after giving away response, so this process itself would shutdown
+    return true;
   }
-
-  /*@Override
-  public boolean onActivate(Scheduler.ActivateTopologyRequest request) {
-    LOG.info("To activate topology: " + request.getTopologyName());
-
-    try {
-      communicateTMaster("activate");
-    } catch (Exception e) {
-      LOG.log(Level.SEVERE, "We could not deactivate topology:", e);
-      return false;
-    }
-    return true;
-  }*/
-
-  /*@Override
-  public boolean onDeactivate(Scheduler.DeactivateTopologyRequest request) {
-    LOG.info("To deactivate topology: " + request.getTopologyName());
-
-    try {
-      communicateTMaster("deactivate");
-    } catch (Exception e) {
-      LOG.log(Level.SEVERE, "We could not deactivate topology:", e);
-      return false;
-    }
-    return true;
-  }*/
 
   @Override
   public boolean onRestart(Scheduler.RestartTopologyRequest request) {
-    Integer shardId = request.getContainerIndex();
-    BaseJob job = executorShardToJob.get(shardId);
-
-    jobScheduler.restartJob(job.name);
+    //TODO: create a new implementation
 
     return true;
   }
@@ -286,18 +267,19 @@ public class MesosScheduler implements IScheduler {
       tmasterRunScript.delete();
     }
 
-    String heronTMasterArguments = getHeronTMasterArguments(config,
-            MesosContext.tmastercontrollerPort(config),
-            MesosContext.tmasterMainPort(config),
-            MesosContext.tmasterStatPort(config),
-            MesosContext.tmasterShellPort(config),
-            MesosContext.tmasterMetricsMgrPort(config));
+    List<Integer> freePorts = new ArrayList<>(SchedulerUtils.PORTS_REQUIRED_FOR_EXECUTOR);
+    for (int i = 0; i < SchedulerUtils.PORTS_REQUIRED_FOR_EXECUTOR; i++) {
+      freePorts.add(SysUtils.getFreePort());
+    }
+
+    String[] executorCmd = SchedulerUtils.executorCommand(config, runtime, 0, freePorts);
 
     try {
       FileWriter fw = new FileWriter(tmasterRunScript);
       fw.write("#!/bin/bash");
       fw.write(System.lineSeparator());
-      fw.write("./heron-executor 0 " + heronTMasterArguments);
+
+      fw.write(String.join(" ", executorCmd));
       fw.write(System.lineSeparator());
       fw.close();
       tmasterRunScript.setExecutable(true);
@@ -327,63 +309,20 @@ public class MesosScheduler implements IScheduler {
     }
   }
 
-  /**
-   * Communicate with TMaster with command
-   *
-   * @param command the command requested to TMaster, activate or deactivate.
-   * @return true if the requested command is processed successfully by tmaster
-   */
-  protected boolean communicateTMaster(String command) {
-    // Get the TMasterLocation
-    TopologyMaster.TMasterLocation location =
-        NetworkUtility.awaitResult(stateManager.getTMasterLocation(),
-            5,
-            TimeUnit.SECONDS);
-
-    String endpoint = String.format("http://%s:%d/%s?topologyid=%s",
-        location.getHost(),
-        location.getControllerPort(),
-        command,
-        location.getTopologyId());
-
-    HttpURLConnection connection = null;
-    try {
-      connection = (HttpURLConnection) new URL(endpoint).openConnection();
-    } catch (IOException e) {
-      LOG.log(Level.SEVERE, "Failed to get connection to tmaster: ", e);
-      return false;
-    }
-
-    NetworkUtility.sendHttpGetRequest(connection);
-
-    try {
-      if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-        LOG.info("Successfully  " + command);
-        return true;
-      }
-    } catch (IOException e) {
-      LOG.log(Level.SEVERE, "Failed to " + command + " :", e);
-    } finally {
-      connection.disconnect();
-    }
-
-    return true;
-  }
-
-  public static String getHeronJobExecutorArguments(Config config) {
-    return getHeronExecutorArguments(config,
+  public String getHeronJobExecutorArguments() {
+    return getHeronExecutorArguments(
         "{{task.ports[STMGR_PORT]}}", "{{task.ports[METRICMGR_PORT]}}",
         "{{task.ports[BACK_UP]}}", "{{task.ports[SHELL]}}",
-        "{{task.ports[BACK_UP_1]}}");
+        "{{task.ports[BACK_UP_1]}}", "{{task.ports[SCHEDULER_PORT]}}");
   }
 
-  public static String getHeronExecutorArguments(
-      Config config,
+  public String getHeronExecutorArguments(
       String sPort1,
       String sPort2,
       String sPort3,
       String sPort4,
-      String sPort5) {
+      String sPort5,
+      String sPort6) {
 
     return String.format(
         "\"%s\" \"%s\" \"%s\" " +
@@ -393,28 +332,49 @@ public class MesosScheduler implements IScheduler {
             "\"%s\" \"%s\" \"%s\" " +
             "\"%s\" \"%s\" \"%s\" " +
             "\"%s\" \"%s\" \"%s\" " +
+            "\"%s\" \"%s\" \"%s\" " +
+            "\"%s\" \"%s\" \"%s\" " +
             "\"%s\" \"%s\" \"%s\"",
-        config.getStringValue("TOPOLOGY_NAME"), config.getStringValue("TOPOLOGY_ID"), config.getStringValue("TOPOLOGY_DEFN"),
-            config.getStringValue("INSTANCE_DISTRIBUTION"), config.getStringValue("ZK_NODE"), config.getStringValue("ZK_ROOT"),
-            config.getStringValue("TMASTER_BINARY"), config.getStringValue("STMGR_BINARY"), config.getStringValue("METRICS_MGR_CLASSPATH"),
-            config.getStringValue("INSTANCE_JVM_OPTS_IN_BASE64"), config.getStringValue("CLASSPATH"), sPort1,
-        sPort2, sPort3, config.getStringValue("HERON_INTERNALS_CONFIG_FILENAME"),
-            config.getStringValue("COMPONENT_RAMMAP"), config.getStringValue("COMPONENT_JVM_OPTS_IN_BASE64"), config.getStringValue("PKG_TYPE"),
-            config.getStringValue("TOPOLOGY_JAR_FILE"), config.getStringValue("HERON_JAVA_HOME"),
-        sPort4, config.getStringValue("LOG_DIR"), config.getStringValue("HERON_SHELL_BINARY"),
-        sPort5);
+        Runtime.topologyName(runtime), Runtime.topologyId(runtime), FileUtils.getBaseName(Context.topologyDefinitionFile(config)),
+        TopologyUtils.packingToString(packing), MesosContext.stateManagerConnectionString(config), MesosContext.stateManagerRootPath(config),
+        Context.tmasterSandboxBinary(config), Context.stmgrSandboxBinary(config), Context.metricsManagerSandboxClassPath(config),
+        formatJavaOpts(TopologyUtils.getInstanceJvmOptions(topology)), TopologyUtils.makeClassPath(topology, Context.topologyJarFile(config)), sPort1,
+        sPort2, sPort3, Context.systemConfigSandboxFile(config), TopologyUtils.formatRamMap(
+            TopologyUtils.getComponentRamMap(topology, Context.instanceRam(config))),
+        formatJavaOpts(TopologyUtils.getComponentJvmOptions(topology)), Context.topologyPackageType(config),
+        FileUtils.getBaseName(Context.topologyJarFile(config)), Context.javaSandboxHome(config),
+        sPort4, Context.shellSandboxBinary(config), sPort5, Context.cluster(config), Context.role(config),
+        Context.environ(config), Context.instanceSandboxClassPath(config), Context.metricsSinksSandboxFile(config),
+        completeSchedulerClasspath(), sPort6);
   }
 
-  public static String getHeronTMasterArguments(
+  public String getHeronTMasterArguments(
       Config config,
+      PackingPlan packing,
       int port1,  // Port for TMaster Controller and Stream-manager port
       int port2,  // Port for TMaster and Stream-manager communication amd Stream manager with
       // metric manager communicaiton.
       int port3,   // Port for TMaster stats export. Used by tracker.
       int shellPort,  // Port for heorn-shell
-      int metricsmgrPort      // Port for MetricsMgr in TMasterContainer
+      int metricsmgrPort,      // Port for MetricsMgr in TMasterContainer
+      int schedulerPort      // Port for MetricsMgr in TMasterContainer
   ) {
-    return getHeronExecutorArguments(config, "" + port1, "" + port2,
-        "" + port3, "" + shellPort, "" + metricsmgrPort);
+    return getHeronExecutorArguments("" + port1, "" + port2,
+        "" + port3, "" + shellPort, "" + metricsmgrPort, "" + schedulerPort);
+  }
+
+  protected String formatJavaOpts(String javaOpts) {
+    String javaOptsBase64 = DatatypeConverter.printBase64Binary(
+        javaOpts.getBytes(Charset.forName("UTF-8")));
+
+    return String.format("\"%s\"", javaOptsBase64.replace("=", "&equals;"));
+  }
+
+  private String completeSchedulerClasspath() {
+    return new StringBuilder()
+        .append(Context.schedulerSandboxClassPath(config)).append(":")
+        .append(Context.packingSandboxClassPath(config)).append(":")
+        .append(Context.stateManagerSandboxClassPath(config))
+        .toString();
   }
 }

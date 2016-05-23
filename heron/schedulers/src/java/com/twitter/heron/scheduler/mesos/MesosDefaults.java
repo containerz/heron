@@ -34,7 +34,7 @@ public final class MesosDefaults {
   static {
     try {
       defaults = Resource.load(
-          "com.twitter.heron.scheduler.local.MesosDefaults",
+          "com.twitter.heron.scheduler.mesos.MesosDefaults",
           MesosConstants.DEFAULTS_YAML);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("Failed to load the Defaults class ", e);

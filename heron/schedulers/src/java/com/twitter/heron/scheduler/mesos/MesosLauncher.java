@@ -15,7 +15,6 @@
 package com.twitter.heron.scheduler.mesos;
 
 import com.twitter.heron.common.basics.SysUtils;
-import com.twitter.heron.scheduler.local.LocalContext;
 import com.twitter.heron.spi.common.Config;
 import com.twitter.heron.spi.common.Context;
 import com.twitter.heron.spi.common.PackingPlan;
@@ -26,9 +25,7 @@ import com.twitter.heron.spi.utils.SchedulerUtils;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,7 +46,7 @@ public class MesosLauncher implements ILauncher {
     this.runtime = mRuntime;
 
     // get the topology working directory
-    this.topologyWorkingDirectory = LocalContext.workingDirectory(config);
+    this.topologyWorkingDirectory = MesosContext.workingDirectory(config);
   }
 
   @Override
@@ -63,7 +60,7 @@ public class MesosLauncher implements ILauncher {
   @Override
   public boolean launch(PackingPlan packing) {
     LOG.log(Level.FINE, "Launching topology for local cluster {0}",
-        LocalContext.cluster(config));
+        MesosContext.cluster(config));
 
     // setup the working directory
     // mainly it downloads and extracts the heron-core-release and topology package
@@ -74,7 +71,12 @@ public class MesosLauncher implements ILauncher {
 
     String[] schedulerCmd = getSchedulerCommand();
 
-    Process p = startScheduler(schedulerCmd);
+    Map<String, String> extraArgs = new HashMap<String, String>();
+
+    extraArgs.put("TOPOLOGY_PACKAGE_URI", Runtime.topologyPackageUri(runtime).toString());
+    extraArgs.put("CORE_PACKAGE_URI", Context.corePackageUri(config));
+
+    Process p = startScheduler(extraArgs, schedulerCmd);
 
     if (p == null) {
       LOG.severe("Failed to start SchedulerMain using: " + Arrays.toString(schedulerCmd));
@@ -83,7 +85,7 @@ public class MesosLauncher implements ILauncher {
 
     LOG.info(String.format(
         "For checking the status and logs of the topology, use the working directory %s",
-        LocalContext.workingDirectory(config)));
+        MesosContext.workingDirectory(config)));
 
     return true;
   }
@@ -102,7 +104,7 @@ public class MesosLauncher implements ILauncher {
 
   protected boolean setupWorkingDirectory() {
     // get the path of core release URI
-    String coreReleasePackageURI = LocalContext.corePackageUri(config);
+    String coreReleasePackageURI = MesosContext.corePackageUri(config);
 
     // form the target dest core release file name
     String coreReleaseFileDestination = Paths.get(
@@ -124,8 +126,9 @@ public class MesosLauncher implements ILauncher {
         Context.verbose(config));
   }
 
-  protected Process startScheduler(String[] schedulerCmd) {
-    return ShellUtils.runASyncProcess(LocalContext.verbose(config), schedulerCmd,
-        new File(topologyWorkingDirectory));
+  protected Process startScheduler(Map<String, String> envs, String[] schedulerCmd) {
+
+    return ShellUtils.runASyncProcessWithEnvs(MesosContext.verbose(config), schedulerCmd,
+        new File(topologyWorkingDirectory), envs);
   }
 }

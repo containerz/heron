@@ -37,6 +37,8 @@ public class MesosJobFramework implements Scheduler {
   private volatile CountDownLatch startLatch = new CountDownLatch(1);
   private volatile CountDownLatch endLatch = null;
 
+  private SchedulerDriver driver;
+
   // For failure recovery
   // ----------------
   private volatile boolean isRecovered = false;
@@ -232,6 +234,7 @@ public class MesosJobFramework implements Scheduler {
 
     LOG.info("Start to reconcile all tasks under monitoring");
     reconcileTasks(driver);
+    this.driver = driver;
   }
 
   @Override
@@ -240,6 +243,7 @@ public class MesosJobFramework implements Scheduler {
 
     LOG.info("Start to reconcile all tasks under monitoring");
     reconcileTasks(driver);
+    this.driver = driver;
   }
 
   @Override
@@ -407,8 +411,10 @@ public class MesosJobFramework implements Scheduler {
         // We could not throw exceptions here, though they should not be states related to mesos directly,
         // considering there might be a lot of pending statusUpdate coming at the same time
         LOG.info(String.format("Received [%s] update for a task in terminated state: [%s]", status, task));
+        break;
       case FINISHED_FAILURE:
         LOG.info(String.format("Received [%s] update for a task in terminated state: [%s]", status, task));
+        break;
       default:
         LOG.info(String.format("Received [%s] update for task in unknown state: [%s]", status, task));
     }
@@ -570,6 +576,10 @@ public class MesosJobFramework implements Scheduler {
     }
 
     return tasks;
+  }
+
+  public void killFramework() {
+    driver.stop();
   }
 
   private void launchTasks(SchedulerDriver driver, List<LaunchableTasks> tasks) {

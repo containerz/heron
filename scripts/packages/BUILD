@@ -192,7 +192,7 @@ pkg_tar(
 
 pkg_tar(
     name = "heron-client-conf-mesos",
-    package_dir = "conf/aurora",
+    package_dir = "conf/mesos",
     files = [
         "//heron/config/src/yaml:conf-mesos-yaml",
     ],

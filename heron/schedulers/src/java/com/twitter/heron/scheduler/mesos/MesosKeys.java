@@ -33,7 +33,7 @@ public final class MesosKeys {
   static {
     try {
       keys = Resource.load(
-          "com.twitter.heron.scheduler.local.MesosKeys", MesosConstants.KEYS_YAML);
+          "com.twitter.heron.scheduler.mesos.MesosKeys", MesosConstants.KEYS_YAML);
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("Failed to load the config Keys class ", e);
     }
