@@ -28,6 +28,10 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.GroupGrantee;
+import com.amazonaws.services.s3.model.Permission;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.twitter.heron.spi.common.Config;
 import com.twitter.heron.spi.common.Context;
 import com.twitter.heron.spi.uploader.IUploader;
@@ -70,6 +74,8 @@ public class S3Uploader implements IUploader {
 
   private File packageFileHandler;
 
+  private boolean setPublic;
+
   @Override
   public void initialize(Config config) {
     bucket = S3Context.bucket(config);
@@ -87,6 +93,8 @@ public class S3Uploader implements IUploader {
     if (accessSecret == null || accessSecret.isEmpty()) {
       throw new RuntimeException("Missing heron.uploader.s3.secret_key config value");
     }
+
+    setPublic = S3Context.setPublic(config);
 
     AWSCredentials credentials = new BasicAWSCredentials(accessKey, accessSecret);
     s3Client = new AmazonS3Client(credentials);
@@ -114,7 +122,13 @@ public class S3Uploader implements IUploader {
 
     // Attempt to write the topology package to s3
     try {
-      s3Client.putObject(bucket, remoteFilePath, packageFileHandler);
+      AccessControlList acl = new AccessControlList();
+      acl.grantPermission(GroupGrantee.AllUsers, Permission.Read);
+      PutObjectRequest putObjectRequest = new PutObjectRequest(bucket, remoteFilePath, packageFileHandler);
+      if (setPublic) {
+        putObjectRequest.withAccessControlList(acl);
+      }
+      s3Client.putObject(putObjectRequest);
     } catch (AmazonClientException e) {
       LOG.log(Level.SEVERE, "Error writing topology package to " + bucket + " "
           + remoteFilePath, e);
