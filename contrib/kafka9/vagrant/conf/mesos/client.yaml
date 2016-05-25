@@ -1,5 +1,5 @@
 # location of the core package
-heron.package.core.uri:                      "file:///vagrant/dist/ubuntu/heron-core-0.12.0-ubuntu14.04.tar.gz"
+heron.package.core.uri:                      "file:///vagrant/dist/ubuntu/heron-core-release-ubuntu14.04.tar.gz"
 heron.directory.java.home:                   /usr/lib/jvm/java-8-openjdk-amd64/
 
 heron.config.role.required: false

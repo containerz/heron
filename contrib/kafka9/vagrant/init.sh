@@ -138,9 +138,9 @@ print_usage() {
 }
 
 copy_vagrant_conf() {
-    rm -rf /vagrant/dist/ubuntu/heron-0.12.0/mesos
-    mkdir -p /vagrant/dist/ubuntu/heron-0.12.0/mesos
-    cp /vagrant/contrib/kafka9/vagrant/conf/mesos/* /vagrant/dist/ubuntu/heron-0.12.0/conf/mesos
+    rm -rf /vagrant/dist/ubuntu/heron-cli/mesos
+    mkdir -p /vagrant/dist/ubuntu/heron-cli/mesos
+    cp /vagrant/contrib/kafka9/vagrant/conf/mesos/* /vagrant/dist/ubuntu/heron-cli/conf/mesos
 }
 
 if [[ $1 != "master" && $1 != "slave" ]]; then

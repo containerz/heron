@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-./docker/build-artifacts.sh centos7 0.1.0-SNAPSHOT dist/centos
+mkdir -p dist/centos
+
+./docker/build-artifacts.sh centos7 release dist/centos

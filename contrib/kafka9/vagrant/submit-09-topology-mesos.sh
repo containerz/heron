@@ -9,5 +9,5 @@ if [[ $# -ne 4 ]] ; then
 fi
 
 pushd ${DIST_DIR}/ubuntu
-    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./heron-0.12.0/bin/heron submit mesos/vagrant ${DIST_DIR}/topologies/kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology $1 $2 $3 $4 --config-path ${HERON_CONF_PATH} --heron_home /vagrant/dist/heron-0.12.0
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./heron-cli/bin/heron submit mesos/vagrant ${DIST_DIR}/topologies/kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology $1 $2 $3 $4 --config-path ${HERON_CONF_PATH} --heron_home /vagrant/dist/heron-cli
 popd
