@@ -58,4 +58,8 @@ public final class MesosDefaults {
   public static Integer getInteger(String key) {
     return TypeUtils.getInteger(defaults.get(key));
   }
+
+  public static Boolean getBoolean(String key) {
+    return TypeUtils.getBoolean(defaults.get(key));
+  }
 }

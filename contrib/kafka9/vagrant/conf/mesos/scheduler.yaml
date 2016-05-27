@@ -12,3 +12,6 @@ heron.directory.sandbox.java.home:           /usr/lib/jvm/java-8-openjdk-amd64/
 
 # Invoke the IScheduler as a library directly
 heron.scheduler.is.service:                  True
+
+# Whether to launch Mesos scheduler in a background process
+heron.scheduler.background:                  False
