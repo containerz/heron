@@ -14,6 +14,12 @@
 
 package com.twitter.heron.scheduler.mesos;
 
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.twitter.heron.common.basics.SysUtils;
 import com.twitter.heron.spi.common.Config;
 import com.twitter.heron.spi.common.Context;
@@ -22,12 +28,6 @@ import com.twitter.heron.spi.common.ShellUtils;
 import com.twitter.heron.spi.scheduler.ILauncher;
 import com.twitter.heron.spi.utils.Runtime;
 import com.twitter.heron.spi.utils.SchedulerUtils;
-
-import java.io.File;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Launch topology locally to a working directory.
@@ -131,12 +131,14 @@ public class MesosLauncher implements ILauncher {
 
       return true;
     } else {
+      LOG.info(String.format("Starting Mesos scheduler process. Working dir: %s",
+          MesosContext.workingDirectory(config)));
       int exitValue = ShellUtils.runSyncProcessWithEnvs(MesosContext.verbose(config), false,
           schedulerCmd, new StringBuilder(), new StringBuilder(), new File(
               topologyWorkingDirectory), envs);
 
       if (exitValue == 0) {
-        LOG.info("Scheduler finished working successfully");
+        LOG.info("Scheduler process finished");
         return true;
       } else {
         LOG.severe("Scheduler exited with the code " + exitValue + ". Command that was used for"
