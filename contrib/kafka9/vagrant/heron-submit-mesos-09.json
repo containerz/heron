@@ -1,0 +1,12 @@
+{
+  "id": "heron-kafka-09-mirror",
+  "cmd": "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./bin/heron submit mesos/root kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology somename slave0:5000 foo bar --config-path . --heron_home . --config-property \"heron.scheduler.local.working.directory=${MESOS_SANDBOX}/scheduler-sandbox\"",
+  "cpus": 0.2,
+  "mem": 512,
+  "instances": 1,
+  "uris": [
+    "file:///vagrant/dist/ubuntu/heron-client-release-ubuntu14.04.tar.gz",
+    "file:///vagrant/dist/configs/heron-mesos-conf.tar.gz",
+    "file:///vagrant/dist/topologies/kafka-09-mirror_deploy.jar"
+  ]
+}
