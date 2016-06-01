@@ -61,33 +61,6 @@ public class MesosContext extends Context {
         MesosKeys.get("MESOS_MASTER_URI"), MesosDefaults.get("MESOS_MASTER_URI"));
   }
 
-  public static Integer tmasterStatPort(Config config) {
-    return config.getIntegerValue(
-        MesosKeys.get("TMASTER_STAT_PORT"), MesosDefaults.getInteger("TMASTER_STAT_PORT"));
-  }
-
-  public static Integer tmasterMainPort(Config config) {
-    return config.getIntegerValue(
-        MesosKeys.get("TMASTER_MAIN_PORT"), MesosDefaults.getInteger("TMASTER_MAIN_PORT"));
-  }
-
-  public static Integer tmastercontrollerPort(Config config) {
-    return config.getIntegerValue(
-        MesosKeys.get("TMASTER_CONTROLLER_PORT"), MesosDefaults.getInteger(
-            "TMASTER_CONTROLLER_PORT"));
-  }
-
-  public static Integer tmasterShellPort(Config config) {
-    return config.getIntegerValue(
-        MesosKeys.get("TMASTER_SHELL_PORT"), MesosDefaults.getInteger("TMASTER_SHELL_PORT"));
-  }
-
-  public static Integer tmasterMetricsMgrPort(Config config) {
-    return config.getIntegerValue(
-        MesosKeys.get("TMASTER_METRICSMGR_PORT"), MesosDefaults.getInteger(
-            "TMASTER_METRICSMGR_PORT"));
-  }
-
   public static String workingDirectory(Config config) {
     String workingDirectory = config.getStringValue(
         MesosKeys.get("WORKING_DIRECTORY"), MesosDefaults.get("WORKING_DIRECTORY"));
