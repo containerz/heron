@@ -83,9 +83,15 @@ public class MesosLauncher implements ILauncher {
   // Utils methods for unit tests
   ///////////////////////////////////////////////////////////////////////////////
   protected String[] getSchedulerCommand() {
+    Integer schedulerPort = MesosContext.schedulerHTTPPort(config);
+
     List<Integer> freePorts = new ArrayList<>(SchedulerUtils.PORTS_REQUIRED_FOR_SCHEDULER);
-    for (int i = 0; i < SchedulerUtils.PORTS_REQUIRED_FOR_SCHEDULER; i++) {
-      freePorts.add(SysUtils.getFreePort());
+    if (schedulerPort == 0) {
+      for (int i = 0; i < SchedulerUtils.PORTS_REQUIRED_FOR_SCHEDULER; i++) {
+        freePorts.add(SysUtils.getFreePort());
+      }
+    } else {
+      freePorts.add(schedulerPort);
     }
 
     return SchedulerUtils.schedulerCommand(config, runtime, freePorts);
