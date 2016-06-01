@@ -1,0 +1,15 @@
+name: heron-mesos-min
+applications:
+  heron-kafka-09-mirror:
+    type: heron
+    id: heron-kafka-09-mirror
+    cpu: 0.2
+    mem: 512
+    ports:
+      - 0
+    artifact_urls:
+      - "file:///vagrant/dist/ubuntu/heron-client-release-ubuntu14.04.tar.gz"
+      - "file:///vagrant/dist/configs/heron-mesos-conf.tar.gz"
+      - "file:///vagrant/dist/topologies/kafka-09-mirror_deploy.jar"
+    launch_command: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/ ./bin/heron submit mesos/root kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${topology_name} ${kafka_bootstrap_server} ${source_topic} ${target_topic} --config-path . --heron_home . --config-property \"heron.scheduler.local.working.directory=$MESOS_SANDBOX/scheduler-sandbox\" --config-property \"heron.scheduler.mesos.http.port=$PORT0\""
+
