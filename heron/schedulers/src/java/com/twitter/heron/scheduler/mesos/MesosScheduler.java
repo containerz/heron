@@ -46,7 +46,6 @@ import com.twitter.heron.scheduler.mesos.framework.state.ZkPersistenceStore;
 // CHECKSTYLE:OFF AvoidStarImport
 import com.twitter.heron.spi.common.*;
 import com.twitter.heron.spi.scheduler.IScheduler;
-import com.twitter.heron.spi.statemgr.SchedulerStateManagerAdaptor;
 import com.twitter.heron.spi.utils.Runtime;
 import com.twitter.heron.spi.utils.SchedulerUtils;
 import com.twitter.heron.spi.utils.TopologyUtils;
@@ -216,7 +215,7 @@ public class MesosScheduler implements IScheduler {
   }
 
   @Override
-  public void initialize(Config config, Config runtime) {
+  public void initialize(Config schedulerConfig, Config runtimeConfig) {
     LOG.info("Initializing new mesos topology scheduler");
     this.tmasterRestart = new AtomicBoolean(true);
     this.config = schedulerConfig;
@@ -356,7 +355,7 @@ public class MesosScheduler implements IScheduler {
             + "\"%s\" \"%s\" \"%s\" "
             + "\"%s\" \"%s\" \"%s\"",
         Runtime.topologyName(runtime), Runtime.topologyId(runtime), FileUtils.getBaseName(
-            Context.topologyDefinitionFile(config)), packing.getInstanceDistribution(),
+            Context.topologyDefinitionFile(config)), TopologyUtils.packingToString(packing),
         MesosContext.stateManagerConnectionString(config), MesosContext
             .stateManagerRootPath(config),
         Context.tmasterSandboxBinary(config), Context.stmgrSandboxBinary(config),
