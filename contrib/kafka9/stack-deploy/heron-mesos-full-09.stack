@@ -75,63 +75,18 @@ applications:
       - UNIQUE
     launch_command: "yum -y install libunwind libcurl-devel"
 
-  heron-pack-topology:
-    type: run-once
-    id: heron-pack-topology
-    cpu: 0.1
-    mem: 256
-    instances: all
-    constraints:
-    - - hostname
-      - UNIQUE
+  heron-kafka-09-mirror:
+    type: heron
+    id: heron-kafka-09-mirror
+    cpu: 0.2
+    mem: 512
+    ports:
+      - 31105
     artifact_urls:
-      - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
-      - "http://repo.elodina.s3.amazonaws.com/pack_topology.conf"
-      - "http://repo.elodina.s3.amazonaws.com/kafka-09-mirror_deploy.jar"
-    launch_command: "./bin/heron-cli2 submit \"heron.uploader.file.system.path=/opt/heron-packages\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path pack_topology.conf"
+      - "http://repo-elodina.s3.amazonaws.com/heron-client-release-centos7.tar.gz"
+      - "http://repo-elodina.s3.amazonaws.com/heron-mesos-conf.tar.gz"
+      - "http://repo-elodina.s3.amazonaws.com/kafka-09-mirror_deploy.jar"
+    launch_command: "JAVA_HOME=/usr ./bin/heron submit mesos/root kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-path . --heron_home . --config-property \"heron.scheduler.local.working.directory=$MESOS_SANDBOX/scheduler-sandbox\" --config-property \"heron.scheduler.mesos.http.port=$PORT0\" --config-property \"heron.package.core.uri=http://repo-elodina.s3.amazonaws.com/heron-core-release-centos7.tar.gz\" --config-property \"heron.statemgr.connection.string=${exhibitor-mesos.zkConnect}\" --config-property \"heron.directory.java.home=/usr\" --config-property \"heron.directory.sandbox.java.home=/usr\" --config-property \"heron.mesos.framework.zookeeper.endpoint=${exhibitor-mesos.zkConnect}\" --config-property \"mesos.master.uri=leader.mesos.service:5050\""
     dependencies:
       - kafka-mesos-09
       - heron-deps-install
-
-  heron-create-znodes:
-    type: run-once
-    id: heron-create-znodes
-    cpu: 0.1
-    mem: 256
-    artifact_urls:
-      - "http://repo.elodina.s3.amazonaws.com/solr-5.4.1.tgz"
-    launch_command: "./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/pplans
-    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/executionstate
-    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/tmasters
-    && ./solr*/server/scripts/cloud-scripts/zkcli.sh -zkhost ${exhibitor-mesos.zkConnect} -cmd makepath /storm/heron/cluster/topologies"
-    dependencies:
-      - heron-pack-topology
-
-  heron:
-    type: heron
-    id: heron
-    cpu: 0.1
-    mem: 256
-    artifact_urls:
-      - "http://repo.elodina.s3.amazonaws.com/heron-core-0.1.0-SNAPSHOT.tar.gz"
-    launch_command: "java -cp heron-scheduler.jar com.twitter.heron.scheduler.mesos.framework.FrameworkMain $PORT0 heron-mesos ${mesos.master} root 30 5000 ${exhibitor-mesos.zkConnect} 30000 30000 /heron-mesos"
-    ports:
-      - 31988
-    after_scheduler:
-      - sleep 60
-    dependencies:
-      - heron-pack-topology
-      - heron-create-znodes
-
-  heron-submit-topology:
-    type: run-once
-    id: heron-submit-topology
-    cpu: 0.1
-    mem: 256
-    artifact_urls:
-      - "http://repo.elodina.s3.amazonaws.com/heron-0.1.0-SNAPSHOT.tar.gz"
-      - "http://repo.elodina.s3.amazonaws.com/mesos_scheduler.conf"
-      - "http://repo.elodina.s3.amazonaws.com/kafka-09-mirror_deploy.jar"
-    launch_command: "./bin/heron-cli2 submit \"zk.connection.string=${exhibitor-mesos.zkConnect} mesos.master.uri.example.devel=${mesos.master} role=root heron.topology.pkg.uri=file:///opt/heron-packages/dc/role/environ/${heron_topology_name}/topology.tar.gz heron.mesos.framework.server.endpoint=http://heron.service:31988 heron.mesos.framework.zookeeper.endpoint=${exhibitor-mesos.zkConnect} uploader.class=\\\"com.twitter.heron.scheduler.util.Nullity\\$NullUploader\\\" heron.java.home.path=/usr\" kafka-09-mirror_deploy.jar com.twitter.heron.KafkaMirrorTopology ${heron_topology_name} broker-90.service:31250 ${source_topic} ${target_topic} --config-loader com.twitter.heron.scheduler.util.DefaultConfigLoader --config-path mesos_scheduler.conf"
-    dependencies:
-      - heron

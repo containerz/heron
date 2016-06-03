@@ -1,0 +1,10 @@
+# uploader class for transferring the topology jar/tar files to storage
+heron.class.uploader: com.twitter.heron.uploader.s3.S3Uploader
+# S3 bucket to put the jar file into
+heron.uploader.s3.bucket: heron-topologies-elodina
+# AWS access key
+heron.uploader.s3.access_key: <put_actual_key_here_before_packing>
+# AWS secret access key
+heron.uploader.s3.secret_key: <put_actual_key_here_before_packing>
+# Whether to set package public
+heron.uploader.s3.set_public: false

@@ -1,0 +1,23 @@
+# scheduler class for distributing the topology for execution
+heron.class.scheduler:                       com.twitter.heron.scheduler.mesos.MesosScheduler
+
+# launcher class for submitting and launching the topology
+heron.class.launcher:                        com.twitter.heron.scheduler.mesos.MesosLauncher
+
+# working directory for the topologies
+heron.scheduler.local.working.directory:     ${HOME}/.herondata/topologies/${TOPOLOGY}
+
+# location of java - pick it up from shell environment
+heron.directory.sandbox.java.home:           /usr
+
+# Invoke the IScheduler as a library directly
+heron.scheduler.is.service:                  True
+
+# Whether to launch Mesos scheduler in a background process
+heron.scheduler.background:                  False
+
+# ZK connection for Heron Mesos framework persistence storage
+heron.mesos.framework.zookeeper.endpoint:    exhibitor-90.service:2181
+
+# Mesos Master connection
+mesos.master.uri:                            leader.mesos.service:5050
